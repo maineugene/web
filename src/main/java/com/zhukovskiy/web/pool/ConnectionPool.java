@@ -6,17 +6,21 @@ import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ConnectionPool {
     private static ConnectionPool instance;
-    private BlockingDeque<Connection> free = new LinkedBlockingDeque <>(8);
-    private BlockingDeque<Connection> used = new LinkedBlockingDeque <>(8);
+    private final BlockingDeque<Connection> free = new LinkedBlockingDeque<>(8);
+    private final BlockingDeque<Connection> used = new LinkedBlockingDeque<>(8);
+    private static final Lock instanceLock = new ReentrantLock();
 
     static {
         try {
             DriverManager.registerDriver(new com.mysql.cj.jdbc.Driver());
+            //Class.forName("om.mysql.cj.jdbc.Driver"); //2
         } catch (SQLException e) {
-            e.printStackTrace();
+             throw new ExceptionInInitializerError();
         }
     }
 
@@ -39,36 +43,53 @@ public class ConnectionPool {
             try {
                 connection = DriverManager.getConnection(url, prop);
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                throw new ExceptionInInitializerError();
             }
             free.add(connection);
         }
     }
 
-    public static synchronized ConnectionPool getInstance() {
-        if(instance == null){
-            instance = new ConnectionPool();
+    public static ConnectionPool getInstance() {
+        instanceLock.lock();
+        try {
+            if (instance == null) {
+                instance = new ConnectionPool();
+            }
+            return instance;
+        } finally {
+            instanceLock.unlock();
         }
-        return instance;
     }
 
-    public Connection getConnection(){
+    public Connection getConnection() {
         Connection connection = null;
-        try{
+        try {
             connection = free.take();
             used.put(connection);
-        } catch (InterruptedException e){
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            // log
+            Thread.currentThread().interrupt();
         }
         return connection;
     }
 
-    public void releaseConnection(Connection connection){
+    public void releaseConnection(Connection connection) {
         try {
             used.remove(connection);
             free.put(connection);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            // log
+            Thread.currentThread().interrupt();
+        }
+    }
+    //todo deregisterDriver
+    public void destroyPool(){
+        for(int i = 0; i < 8; ++i){
+            try {
+                free.take().close();
+            } catch (SQLException | InterruptedException e) {
+                // log
+            }
         }
     }
 }

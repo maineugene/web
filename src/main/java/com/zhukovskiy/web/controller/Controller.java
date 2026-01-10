@@ -4,6 +4,8 @@ import java.io.*;
 
 import com.zhukovskiy.web.command.Command;
 import com.zhukovskiy.web.command.CommandType;
+import com.zhukovskiy.web.exception.CommandException;
+import com.zhukovskiy.web.pool.ConnectionPool;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
@@ -18,8 +20,17 @@ public class Controller extends HttpServlet {
         response.setContentType("text/html");
         String commandStr = request.getParameter("command");
         Command command = CommandType.define(commandStr);
-        String page = command.execute(request);
-        request.getRequestDispatcher(page).forward(request, response);
+        String page;
+        try {
+            page = command.execute(request);
+            request.getRequestDispatcher(page).forward(request, response);
+            //response.sendRedirect(page);
+        } catch (CommandException e) {
+            //response.sendError(500);  //1
+            //throw new ServletException(e);//2
+            request.setAttribute("error_msg", e.getCause());
+            request.getRequestDispatcher("pages/error/error_500.jsp").forward(request, response);
+        }
     }
 
     @Override
@@ -27,5 +38,6 @@ public class Controller extends HttpServlet {
     }
 
     public void destroy() {
+        ConnectionPool.getInstance().destroyPool();
     }
 }
