@@ -11,7 +11,7 @@ public enum CommandType {
     LOGOUT(new LogoutCommand()),
     DEFAULT(new DefaultCommand());
 
-    Command command;
+    final Command command;
 
     CommandType(Command command) {
         this.command = command;

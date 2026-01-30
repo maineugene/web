@@ -2,7 +2,6 @@ package com.zhukovskiy.web.controller;
 
 import java.io.*;
 
-
 import com.zhukovskiy.web.command.Command;
 import com.zhukovskiy.web.command.CommandType;
 import com.zhukovskiy.web.exception.CommandException;

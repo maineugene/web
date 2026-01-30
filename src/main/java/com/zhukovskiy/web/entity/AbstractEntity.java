@@ -1,9 +1,13 @@
 package com.zhukovskiy.web.entity;
 
 public class AbstractEntity {
-    private long id;
+    private int id;
 
-    public long getId() {
+    public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }
