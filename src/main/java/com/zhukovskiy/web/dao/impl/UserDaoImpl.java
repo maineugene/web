@@ -23,10 +23,12 @@ public class UserDaoImpl implements UserDao {
 
     private static final String SELECT_PASSWORD_WHERE_LOGIN = "SELECT passwordHash FROM users WHERE login = ?";
     private static final String FIND_ALL = "SELECT * FROM USERS";
+    private static final String FIND_BY_LOGIN = "SELECT * FROM users WHERE login = ?";
     private static final String CREATE = "INSERT INTO users(login, passwordHash, role) VALUES(?, ?, ?)";
     private static final String FIND_BY_ID = "SELECT * FROM users WHERE Id = ?";
     private static final String UPDATE = "UPDATE users SET login = ?, passwordHash = ?, role = ? WHERE id = ?";
     private static final String DELETE_BY_ID = "DELETE FROM users WHERE Id = ?";
+
 
     private static final UserDaoImpl instance = new UserDaoImpl();
 
@@ -52,6 +54,27 @@ public class UserDaoImpl implements UserDao {
         } catch (SQLException e) {
             logger.error("Error finding all users");
             throw new DaoException("Error finding all users" + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public Optional<User> findByLogin(String login) throws DaoException {
+        try (Connection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_LOGIN)) {
+            statement.setString(1, login);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    User user = userMapper.map(resultSet);
+                    logger.debug("Found user by login:{}, Id = {}", login, user.getId());
+                    return Optional.of(user);
+                } else {
+                    logger.debug("No users found with login:{}", login);
+                    return Optional.empty();
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error finding user by login {}: {}", login, e.getMessage());
+            throw new DaoException("Error finding user by login: " + e.getMessage(), e);
         }
     }
 
@@ -183,26 +206,22 @@ public class UserDaoImpl implements UserDao {
         }
     }
 
-    //todo
-    //rewrite so that PasswordHasher works
     @Override
     public boolean authenticate(String login, String password) throws DaoException {
-        boolean match = false;
         try (Connection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_PASSWORD_WHERE_LOGIN)) {
             statement.setString(1, login);
-            statement.execute();
-            ResultSet resultSet = statement.executeQuery();
-            String passFromDb;
-            if (resultSet.next()) {
-                passFromDb = resultSet.getString(1);
-                match = password.equals(passFromDb);
-                //return PasswordHasher.checkPassword(password, passFromDb);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    String passwordHashFromDb = resultSet.getString(1);
+                    return PasswordHasher.checkPassword(password, passwordHashFromDb);
+                }
+                return false;
             }
         } catch (SQLException e) {
-            throw new DaoException("SQL error: " + e.getMessage(), e);
+            logger.error("Error authenticating user: login = {}, {}", login, e.getMessage());
+            throw new DaoException("Error authenticating user: " + e.getMessage(), e);
         }
-
-        return match;
     }
 }
