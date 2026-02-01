@@ -20,7 +20,7 @@ ${filter_attr}
 <hr/>
 <form action="controller">
     <input type="hidden" name="command" value="logOut"/>
-    <input type="submit" value="logOut"/>
+    <input type="submit" value="Log out"/>
 </form>
 </body>
 </html>
