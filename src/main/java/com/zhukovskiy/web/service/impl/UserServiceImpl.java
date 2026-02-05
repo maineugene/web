@@ -1,6 +1,5 @@
 package com.zhukovskiy.web.service.impl;
 
-import com.zhukovskiy.web.dao.UserDao;
 import com.zhukovskiy.web.dao.impl.UserDaoImpl;
 import com.zhukovskiy.web.entity.User;
 import com.zhukovskiy.web.entity.UserRole;
@@ -10,7 +9,6 @@ import com.zhukovskiy.web.service.UserService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,16 +24,25 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean authenticate(String login, String password) throws ServiceException {
+    public Optional<User> authenticate(String login, String password) throws ServiceException {
         // validate login, pass + md5
         UserDaoImpl userDao = UserDaoImpl.getInstance();
-        boolean match = false;
         try {
-            match = userDao.authenticate(login, password);
+            Optional<User> userOptional = userDao.findByLogin(login);
+            if (userOptional.isEmpty()) {
+                logger.debug("User not found: {}", login);
+                return Optional.empty();
+            }
+            User user = userOptional.get();
+            if (user.checkPassword(password)) {
+                logger.info("User authenticated: {} (role: {})", login, user.getRole());
+                return Optional.of(user);
+            }
+            logger.debug("Invalid password for user: {}", login);
+            return Optional.empty();
         } catch (DaoException e) {
-            throw new ServiceException(e);
+            throw new ServiceException("Authentication error for user: " + login, e);
         }
-        return match;
     }
 
     @Override

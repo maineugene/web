@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
-    boolean authenticate(String login, String password) throws ServiceException;
+    Optional<User> authenticate(String login, String password) throws ServiceException;
     User register(String login, String password) throws ServiceException;
     void changeUserRole(int userId, UserRole newRole) throws ServiceException;
     List<User> findAllUsers() throws ServiceException;

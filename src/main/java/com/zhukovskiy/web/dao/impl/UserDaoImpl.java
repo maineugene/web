@@ -206,7 +206,7 @@ public class UserDaoImpl implements UserDao {
         }
     }
 
-    @Override
+    /*@Override
     public boolean authenticate(String login, String password) throws DaoException {
         try (Connection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_PASSWORD_WHERE_LOGIN)) {
@@ -223,5 +223,5 @@ public class UserDaoImpl implements UserDao {
             logger.error("Error authenticating user: login = {}, {}", login, e.getMessage());
             throw new DaoException("Error authenticating user: " + e.getMessage(), e);
         }
-    }
+    }*/
 }

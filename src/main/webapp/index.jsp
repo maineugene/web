@@ -22,7 +22,9 @@
 <form action="controller" method="post">
     <input type="hidden" name="command" value="add_user"/>
     <h3>Registration Form</h3>
-    Login: <input type="text" name="login" value=""/>
+    Login: <label>
+    <input type="text" name="login" value=""/>
+</label>
     <br/>
     Password: <input type="password" name="pass" value=""/>
     <br/>

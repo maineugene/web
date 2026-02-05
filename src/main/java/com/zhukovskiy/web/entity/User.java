@@ -32,8 +32,8 @@ public class User extends AbstractEntity {
         this.login = login;
     }
 
-    public void setPasswordHash(String plainPassword) {
-        this.passwordHash = PasswordHasher.hashPassword(plainPassword);
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public boolean checkPassword(String plainPassword) {
