@@ -4,5 +4,5 @@ import com.zhukovskiy.web.exception.CommandException;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface Command {
-    String execute(HttpServletRequest request) throws CommandException;
+    Router execute(HttpServletRequest request) throws CommandException;
 }

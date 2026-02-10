@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="INFO">
     <Properties>
-        <property name="LOG_DIR">logs</property>
-        <property name="ARCHIVE_LOG_DIR">${LOG_DIR}/archive</property>
+        <property name="LOG_DIR">${sys:user.home}/Рабочий стол/InnowiseJava/web/logs</property>        <property name="ARCHIVE_LOG_DIR">${LOG_DIR}/archive</property>
         <property name="pattern_file">%d{HH:mm:ss.SSS} [%t] %-5level %logger{5} - %msg%n</property>
     </Properties>
 
@@ -22,7 +21,7 @@
     </Appenders>
 
     <Loggers>
-        <Logger name="com.zhukovskiy.task1" level="debug" additivity="false">
+        <Logger name="com.zhukovskiy.web" level="debug" additivity="false">
             <!--            <Filters>-->
             <!--                <CoinNewFilter threshold="1000" onMatch="ACCEPT" onMismatch="DENY"/>-->
             <!--            </Filters>-->

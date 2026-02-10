@@ -4,6 +4,7 @@ import java.io.*;
 
 import com.zhukovskiy.web.command.Command;
 import com.zhukovskiy.web.command.CommandType;
+import com.zhukovskiy.web.command.Router;
 import com.zhukovskiy.web.exception.CommandException;
 import com.zhukovskiy.web.pool.ConnectionPool;
 import com.zhukovskiy.web.util.PagePath;
@@ -25,39 +26,42 @@ public class Controller extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        response.setContentType("text/html");
-        String commandStr = request.getParameter(RequestParameter.COMMAND);
-        Command command = CommandType.define(commandStr);
-        String page;
-        try {
-            page = command.execute(request);
-            request.getRequestDispatcher(page).forward(request, response);
-            //response.sendRedirect(page);
-        } catch (CommandException e) {
-            //response.sendError(500);  //1
-            //throw new ServletException(e);//2
-            request.setAttribute(RequestAttribute.ERROR_MSG, e.getCause());
-            request.getRequestDispatcher(PagePath.ERROR_500).forward(request, response);
-        }
+        processRequest(request, response);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("text/html");
+        processRequest(request, response);
+    }
+
+    private void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String commandStr = request.getParameter(RequestParameter.COMMAND);
+        logger.debug("Processing command: {}", commandStr);
         Command command = CommandType.define(commandStr);
-        String page;
         try {
-            page = command.execute(request);
-            request.getRequestDispatcher(page).forward(request, response);
-            //response.sendRedirect(page);
+            Router router = command.execute(request);
+            if(router == null){
+                throw new CommandException("Command returned null router");
+            }
+            handleRouter(router, request, response);
         } catch (CommandException e) {
-            //response.sendError(500);  //1
-            //throw new ServletException(e);//2
-            request.setAttribute(RequestAttribute.ERROR_MSG, e.getCause());
+            logger.error("Command execution failed: {}", commandStr, e);
+            request.setAttribute(RequestAttribute.ERROR_MSG, e.getMessage());
+            request.getRequestDispatcher(PagePath.ERROR_500).forward(request, response);
+        } catch (Exception e) {
+            logger.error("Unexpected error processing command: {}", commandStr, e);
+            request.setAttribute(RequestAttribute.ERROR_MSG, "Internal server error");
             request.getRequestDispatcher(PagePath.ERROR_500).forward(request, response);
         }
+    }
 
+    private void handleRouter(Router router, HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String page = router.getPage();
+        if (router.isRedirect()) {
+            response.sendRedirect(request.getContextPath() + page);
+        } else {
+            request.getRequestDispatcher(page).forward(request, response);
+        }
     }
 
     public void destroy() {

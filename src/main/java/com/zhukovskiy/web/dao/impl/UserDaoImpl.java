@@ -7,7 +7,6 @@ import com.zhukovskiy.web.exception.DaoException;
 import com.zhukovskiy.web.mapper.EntityMapper;
 import com.zhukovskiy.web.mapper.impl.UserMapper;
 import com.zhukovskiy.web.pool.ConnectionPool;
-import com.zhukovskiy.web.util.PasswordHasher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,8 +15,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-
 public class UserDaoImpl implements UserDao {
+    private static class InstanceHolder {
+        static final UserDaoImpl instance = new UserDaoImpl();
+    }
+
+    public static UserDaoImpl getInstance() {
+        return InstanceHolder.instance;
+    }
+
+    private UserDaoImpl() {}
+
     private static final Logger logger = LogManager.getLogger();
     private final EntityMapper<User> userMapper = new UserMapper();
 
@@ -28,16 +36,6 @@ public class UserDaoImpl implements UserDao {
     private static final String FIND_BY_ID = "SELECT * FROM users WHERE Id = ?";
     private static final String UPDATE = "UPDATE users SET login = ?, passwordHash = ?, role = ? WHERE id = ?";
     private static final String DELETE_BY_ID = "DELETE FROM users WHERE Id = ?";
-
-
-    private static final UserDaoImpl instance = new UserDaoImpl();
-
-    private UserDaoImpl() {
-    }
-
-    public static UserDaoImpl getInstance() {
-        return instance;
-    }
 
     @Override
     public List<User> findAll() throws DaoException {
@@ -176,6 +174,7 @@ public class UserDaoImpl implements UserDao {
             logger.warn("Attempt to update null user");
             throw new IllegalArgumentException("User cannot be null");
         }
+
         int userId = user.getId();
         Optional<User> optionalUser = findById(userId);
         if (optionalUser.isEmpty()) {

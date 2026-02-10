@@ -15,6 +15,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+//TODO rewrite this class.It currently works only for 8 requests
 public class ConnectionPool {
     private static final Logger logger = LogManager.getLogger();
     private static ConnectionPool instance;
@@ -47,16 +48,25 @@ public class ConnectionPool {
         connectionProperties = createConnectionProperties(dbProperties);
         initializeConnections();
         logger.info("Connection pool initialized successfully with {} connections", poolSize);
+    }
 
+    public static ConnectionPool getInstance() {
+        instanceLock.lock();
+        try {
+            if (instance == null) {
+                instance = new ConnectionPool();
+            }
+            return instance;
+        } finally {
+            instanceLock.unlock();
+        }
     }
 
     private void initializeConnections() {
         int successfulConnections = 0;
-
         for (int i = 0; i < poolSize; ++i) {
             try {
                 Connection connection = DriverManager.getConnection(url, connectionProperties);
-
                 if (connection.isValid(2)) {
                     free.add(connection);
                     successfulConnections++;
@@ -98,7 +108,6 @@ public class ConnectionPool {
 
         props.put("user", user);
         props.put("password", password);
-
         props.put("autoReconnect", dbProperties.getProperty("db.autoReconnect", "true"));
         props.put("characterEncoding", dbProperties.getProperty("db.characterEncoding", "UTF-8"));
         props.put("useUnicode", dbProperties.getProperty("db.useUnicode", "true"));
@@ -111,13 +120,11 @@ public class ConnectionPool {
 
         logger.debug("Connection properties configured for user: {}", user);
         return props;
-
     }
 
     private Properties loadProperties() {
         Properties properties = new Properties();
         String configFile = "database.properties";
-
         try (InputStream input = ConnectionPool.class.getClassLoader()
                 .getResourceAsStream(configFile)) {
             if (input == null) {
@@ -133,18 +140,6 @@ public class ConnectionPool {
             throw new ExceptionInInitializerError(String.format("Failed to load database configuration: %s", e.getMessage()));
         }
         return properties;
-    }
-
-    public static ConnectionPool getInstance() {
-        instanceLock.lock();
-        try {
-            if (instance == null) {
-                instance = new ConnectionPool();
-            }
-            return instance;
-        } finally {
-            instanceLock.unlock();
-        }
     }
 
     public Connection getConnection() {
@@ -202,7 +197,6 @@ public class ConnectionPool {
                 logger.info("Pool already destroyed");
                 return;
             }
-
             logger.info("Starting pool destruction...");
             isDestroyed = true;
 
@@ -233,13 +227,10 @@ public class ConnectionPool {
                     logger.warn("Failed to close connection", e);
                 }
             }
-
             deregisterDriver();
-
             instance = null;
 
             logger.info("Pool destroyed successfully. Closed {} connections", closedCount);
-
         } finally {
             destroyLock.unlock();
         }

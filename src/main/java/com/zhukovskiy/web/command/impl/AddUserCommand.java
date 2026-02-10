@@ -1,6 +1,7 @@
 package com.zhukovskiy.web.command.impl;
 
 import com.zhukovskiy.web.command.Command;
+import com.zhukovskiy.web.command.Router;
 import com.zhukovskiy.web.entity.User;
 import com.zhukovskiy.web.entity.UserRole;
 import com.zhukovskiy.web.exception.CommandException;
@@ -22,19 +23,19 @@ public class AddUserCommand implements Command {
     private static final Logger logger = LogManager.getLogger();
 
     @Override
-    public String execute(HttpServletRequest request) throws CommandException {
+    public Router execute(HttpServletRequest request) throws CommandException {
         String login = request.getParameter(RequestParameter.LOGIN);
         String password = request.getParameter(RequestParameter.PASSWORD);
         if (login == null || login.isBlank()) {
             request.setAttribute(RequestAttribute.REGISTER_MSG, "Login cannot be empty");
             request.setAttribute(RequestAttribute.LOGIN, login);
-            return PagePath.INDEX;
+            return new Router(PagePath.INDEX, Router.Type.FORWARD);
         }
 
         if (password == null || password.isBlank()) {
             request.setAttribute(RequestAttribute.REGISTER_MSG, "Password cannot be empty");
             request.setAttribute(RequestAttribute.LOGIN, login);
-            return PagePath.INDEX;
+            return new Router(PagePath.INDEX, Router.Type.FORWARD);
         }
 
         UserService userService = UserServiceImpl.getInstance();
@@ -46,7 +47,7 @@ public class AddUserCommand implements Command {
                 logger.info("User with login {} already exists", login);
                 request.setAttribute(RequestAttribute.REGISTER_MSG, "Login '" + login + "' is already taken");
                 request.setAttribute(RequestAttribute.LOGIN, login);
-                return PagePath.INDEX;
+                return new Router(PagePath.INDEX, Router.Type.FORWARD);
             }
 
             User user = userService.register(login, password);
@@ -70,12 +71,12 @@ public class AddUserCommand implements Command {
                 request.setAttribute(RequestAttribute.REGISTER_MSG,
                         "Registration successful! Welcome, " + login + "!");
                 session.setAttribute(SessionAttribute.CURRENT_PAGE, page);
-                return page;
+                return new Router(page, Router.Type.FORWARD);
             } else {
                 request.setAttribute(RequestAttribute.REGISTER_MSG,
                         "Registration successful! Please login with your credentials.");
                 logger.warn("User {} registered but auto-login failed", login);
-                return PagePath.INDEX;
+                return new Router(PagePath.INDEX, Router.Type.FORWARD);
             }
         } catch (ServiceException e) {
             logger.error("Registration failed for {}: {}", login, e.getMessage());

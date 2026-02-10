@@ -1,6 +1,7 @@
 package com.zhukovskiy.web.command.impl;
 
 import com.zhukovskiy.web.command.Command;
+import com.zhukovskiy.web.command.Router;
 import com.zhukovskiy.web.entity.User;
 import com.zhukovskiy.web.entity.UserRole;
 import com.zhukovskiy.web.exception.CommandException;
@@ -20,8 +21,9 @@ import java.util.Optional;
 
 public class LoginCommand implements Command {
     private static final Logger logger = LogManager.getLogger();
+
     @Override
-    public String execute(HttpServletRequest request) throws CommandException {
+    public Router execute(HttpServletRequest request) throws CommandException {
         String login = request.getParameter(RequestParameter.LOGIN);
         String password = request.getParameter(RequestParameter.PASSWORD);
         UserService userService = UserServiceImpl.getInstance();
@@ -37,14 +39,8 @@ public class LoginCommand implements Command {
                 session.setAttribute(SessionAttribute.USER_NAME, user.getLogin());
 
                 request.setAttribute(RequestAttribute.USER_NAME, user.getLogin());
+                page = pageDependingOnRole(user);
 
-                if(user.getRole() == UserRole.ADMIN){
-                    logger.info("Admin user logged in: {}", login);
-                    page = PagePath.ADMIN;
-                } else {
-                    logger.info("Regular user logged in: {}", login);
-                    page = PagePath.MAIN;
-                }
                 request.removeAttribute(RequestAttribute.LOGIN_MSG);
             } else {
                 request.setAttribute(RequestAttribute.LOGIN_MSG, "incorrect login or password");
@@ -56,6 +52,16 @@ public class LoginCommand implements Command {
             logger.error("Log in failed for {}: {}", login, e.getMessage());
             throw new CommandException(e);
         }
-        return page;
+        return new Router(page, Router.Type.FORWARD);
+    }
+
+    private String pageDependingOnRole(User user) {
+        if (user.getRole() == UserRole.ADMIN) {
+            logger.info("Admin user logged in: {}", user.getLogin());
+            return PagePath.ADMIN;
+        } else {
+            logger.info("Regular user logged in: {}", user.getLogin());
+            return PagePath.MAIN;
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.zhukovskiy.web.service.impl;
 
+import com.zhukovskiy.web.dao.UserDao;
 import com.zhukovskiy.web.dao.impl.UserDaoImpl;
 import com.zhukovskiy.web.entity.User;
 import com.zhukovskiy.web.entity.UserRole;
@@ -13,20 +14,25 @@ import java.util.List;
 import java.util.Optional;
 
 public class UserServiceImpl implements UserService {
-    private static final UserServiceImpl instance = new UserServiceImpl();
     private static final Logger logger = LogManager.getLogger();
 
+    private static class InstanceHolder{
+         static final UserServiceImpl instance = new UserServiceImpl();
+    }
+
+    private final UserDao userDao;
+
     private UserServiceImpl() {
+        this.userDao = UserDaoImpl.getInstance();
     }
 
     public static UserServiceImpl getInstance() {
-        return instance;
+        return InstanceHolder.instance;
     }
 
     @Override
     public Optional<User> authenticate(String login, String password) throws ServiceException {
         // validate login, pass + md5
-        UserDaoImpl userDao = UserDaoImpl.getInstance();
         try {
             Optional<User> userOptional = userDao.findByLogin(login);
             if (userOptional.isEmpty()) {
@@ -47,17 +53,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User register(String login, String password) throws ServiceException {
-        UserDaoImpl userDao = UserDaoImpl.getInstance();
         try {
             if (userDao.findByLogin(login).isPresent()) {
                 logger.warn("User with login {} already exists", login);
                 throw new ServiceException("Login '" + login + "' is already taken");
             }
+
             User user = new User(login, password, UserRole.CLIENT);
             if (!userDao.create(user)) {
                 logger.error("Registration failed: could not save user '{}' to database", login);
                 throw new ServiceException("Registration failed. Please try again.");
             }
+
             logger.info("User '{}' registered successfully with ID: {}",
                     login, user.getId());
             return user;
@@ -70,7 +77,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void changeUserRole(int userId, UserRole newRole) throws ServiceException {
-        UserDaoImpl userDao = UserDaoImpl.getInstance();
         try {
             logger.info("Attempting to change role for user with id:{}", userId);
             User user = userDao.findById(userId)
@@ -87,7 +93,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> findAllUsers() throws ServiceException {
-        UserDaoImpl userDao = UserDaoImpl.getInstance();
         try {
             return userDao.findAll();
         } catch (DaoException e) {
@@ -98,7 +103,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<User> findByLogin(String login) throws ServiceException {
-        UserDaoImpl userDao = UserDaoImpl.getInstance();
         try {
             Optional<User> userOptional = userDao.findByLogin(login);
             logger.debug("Found user with login: {}", userOptional.isPresent());
